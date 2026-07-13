@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>맞고 - 큰 카드 겹침형</title>
+<title>맞고 - 큰 카드 문구 정확화</title>
 <style>
   :root{
     --felt:#1a4a2e; --felt-dark:#0e2e1c; --blanket:#1e5c38;
@@ -130,7 +130,9 @@
     color:rgba(255,255,255,.4); font-size:11px;
   }
   #msg{
-    text-align:center; font-size:13px; min-height:20px; padding:2px; color:#ffe9a8; font-weight:600;
+    text-align:center; font-size:13px; min-height:38px; padding:5px 8px;
+    color:#ffe9a8; font-weight:700; line-height:1.35;
+    display:flex; align-items:center; justify-content:center;
   }
   /* ── 토스트 ── */
   #toast{
@@ -200,7 +202,7 @@
 </head>
 <body>
   <div id="topbar">
-    <span class="title">맞 고 · 큰 카드 겹침형</span>
+    <span class="title">맞 고 · 문구 정확화</span>
     <span class="deckinfo"><span id="round-label">3점 나기</span> · 남은 패 <b id="deck-n">20</b>장</span>
   </div>
 
@@ -283,7 +285,8 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 const KIND_LABEL = c=>{
   if(c.kind==='gwang') return c.sub==='bi'?'비광':'광';
-  if(c.kind==='yeol') return c.sub==='godori'?'고도리':'열끗';
+  // 고도리는 새 3장을 모았을 때의 족보이므로, 개별 카드는 열끗으로 안내한다.
+  if(c.kind==='yeol') return c.sub==='godori'?'열끗(고도리 패)':'열끗';
   if(c.kind==='tti') return c.sub==='hong'?'홍단':c.sub==='cheong'?'청단':c.sub==='cho'?'초단':'띠';
   return c.sub==='ssangpi'?'쌍피':'피';
 };
@@ -324,7 +327,7 @@ function newGame(){
     ],
     turn:0, busy:false, over:false,
   };
-  setMsg('내 차례! 낼 패를 고르세요.');
+  setMsg('내 차례입니다. 아래 손패에서 낼 패를 고르세요.');
   render();
 }
 function hasTriple(cards){
@@ -457,9 +460,20 @@ function render(){
   $('deck-n').textContent=S.deck.length;
 }
 function setMsg(t){$('msg').textContent=t;}
-function toast(t){
-  const el=$('toast'); el.textContent=t; el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 950);
+let toastTimer=null;
+function toast(t, duration=1100){
+  const el=$('toast');
+  if(toastTimer) clearTimeout(toastTimer);
+  el.textContent=t;
+  el.classList.add('show');
+  toastTimer=setTimeout(()=>{
+    el.classList.remove('show');
+    toastTimer=null;
+  }, duration);
+}
+function announce(t, popupText=null, duration=1100){
+  setMsg(t);
+  if(popupText) toast(popupText, duration);
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
@@ -481,7 +495,7 @@ function stealPi(from, to){
 function chooseFloorCard(pi, cands){
   if(pi===1) return Promise.resolve(cands.reduce((a,b)=>cardValue(a)>=cardValue(b)?a:b));
   return new Promise(res=>{
-    setMsg('가져올 패를 선택하세요!');
+    setMsg('같은 월 패가 2장입니다. 가져올 패를 선택하세요.');
     const els=[...document.querySelectorAll('#floor .card')];
     const targets=els.filter(el=>cands.some(c=>c.id===+el.dataset.cid));
     targets.forEach(el=>{
@@ -499,8 +513,10 @@ async function playTurn(pi, handIdx){
   S.busy=true;
   clearFlipCard();
   const played=P.hand.splice(handIdx,1)[0];
+  const actor = pi===0 ? '나' : '상대';
   const captured=[];
   let stealCount=0;
+  announce(`${actor}가 낸 패: ${CARD_NAME(played)}`);
 
   const m1=matchesOnFloor(played.m);
   let pending=null;          // [낸 패, 바닥 짝] — 뒤집기 후 확정
@@ -511,7 +527,7 @@ async function playTurn(pi, handIdx){
     S.floor.push(played); playedOnFloor=true;
   }else if(m1.length===3){
     removeFromFloor(m1); captured.push(played,...m1);
-    if(S.ppeok.has(played.m)){S.ppeok.delete(played.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
+    if(S.ppeok.has(played.m)){S.ppeok.delete(played.m); stealCount++; announce(`${actor}: ${played.m}월 뻑 패를 가져왔습니다.`, '뻑 먹기!'); await sleep(650);}
   }else{
     S.floor.push(played); render(); await sleep(300);
     const pick = m1.length===2 ? await chooseFloorCard(pi,m1) : m1[0];
@@ -524,33 +540,32 @@ async function playTurn(pi, handIdx){
   if(S.deck.length){
     const flip=S.deck.pop();
     showFlipCard(flip);
-    setMsg(`더미에서 ${CARD_NAME(flip)} 패가 나왔습니다.`);
-    toast(CARD_NAME(flip));
-    await sleep(850);
+    announce(`${actor}의 뒤집은 패: ${CARD_NAME(flip)}`);
+    await sleep(1000);
 
     if(pending && flip.m===pending[0].m){
       if(!pendingWasPair){
         // 뻑: 3장 바닥에 남김
         S.floor.push(flip); S.ppeok.add(flip.m);
-        pending=null; toast('뻑 !'); await sleep(500);
+        pending=null; announce(`뻑! ${flip.m}월 패 3장이 바닥에 쌓였습니다.`, '뻑!'); await sleep(650);
       }else{
         // 따닥: 4장 싹쓸이 + 피 뺏기
         const rest=matchesOnFloor(flip.m);
         removeFromFloor(rest);
         // pending의 낸패는 floor에 있음 — rest에 포함됨
         captured.push(...rest, flip);
-        pending=null; stealCount++; toast('따닥 !'); await sleep(500);
+        pending=null; stealCount++; announce(`따닥! ${flip.m}월 패 4장을 모두 가져왔습니다.`, '따닥!'); await sleep(650);
       }
     }else if(playedOnFloor && flip.m===played.m && matchesOnFloor(flip.m).length===1){
       // 쪽: 방금 낸 패를 뒤집은 패로 바로 먹기
       removeFromFloor([played]); captured.push(played, flip);
-      stealCount++; toast('쪽 !'); await sleep(500);
+      stealCount++; announce(`쪽! 방금 낸 ${played.m}월 패와 뒤집은 패를 가져왔습니다.`, '쪽!'); await sleep(650);
     }else{
       const m2=matchesOnFloor(flip.m).filter(c=>!pending||c.id!==pending[1].id);
       if(m2.length===0){S.floor.push(flip);}
       else if(m2.length===3){
         removeFromFloor(m2); captured.push(flip,...m2);
-        if(S.ppeok.has(flip.m)){S.ppeok.delete(flip.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
+        if(S.ppeok.has(flip.m)){S.ppeok.delete(flip.m); stealCount++; announce(`${actor}: ${flip.m}월 뻑 패를 가져왔습니다.`, '뻑 먹기!'); await sleep(650);}
       }else{
         render(); await sleep(200);
         const pick=m2.length===2?await chooseFloorCard(pi,m2):m2[0];
@@ -568,13 +583,12 @@ async function playTurn(pi, handIdx){
 
   // 쓸: 뭔가 먹었고 바닥이 비면
   if(captured.length && S.floor.length===0 && (P.hand.length||S.deck.length)){
-    stealCount++; toast('쓸 !'); await sleep(500);
+    stealCount++; announce(`${actor}: 바닥패를 모두 가져갔습니다.`, '쓸!'); await sleep(650);
   }
 
   P.cap.push(...captured);
-  clearFlipCard();
   for(let i=0;i<stealCount;i++){
-    if(stealPi(O,P)){setMsg(`${P.name}: 상대 피 1장 획득!`); await sleep(350);}
+    if(stealPi(O,P)){announce(`${actor}: 상대 피 1장을 가져왔습니다.`, '피 1장 획득'); await sleep(550);}
   }
   render();
 
@@ -591,7 +605,7 @@ async function playTurn(pi, handIdx){
       // AI: 손패 넉넉하고 점수 낮으면 고
       const goIt = P.hand.length>=4 && P.go<2 && sc<TARGET+3;
       await sleep(400);
-      if(goIt){P.go++; P.lastGoScore=sc; toast(`상대 ${P.go}고 !`); await sleep(600);}
+      if(goIt){P.go++; P.lastGoScore=sc; announce(`상대가 ${P.go}고를 선택했습니다.`, `${P.go}고!`); await sleep(700);}
       else{endGame(1); return;}
     }
   }
@@ -606,8 +620,14 @@ function finishTurn(pi){
     endGame(-1); return;
   }
   S.turn=1-pi;
-  if(S.turn===0){setMsg('내 차례! 낼 패를 고르세요.'); render();}
-  else{setMsg('상대가 생각 중…'); render(); setTimeout(aiMove, 800);}
+  if(S.turn===0){
+    setMsg('내 차례입니다. 아래 손패에서 낼 패를 고르세요.');
+    render();
+  }else{
+    setMsg('상대 차례입니다. 잠시 기다려 주세요.');
+    render();
+    setTimeout(aiMove, 800);
+  }
 }
 
 function humanGoStop(go){
@@ -615,7 +635,7 @@ function humanGoStop(go){
   const {pi}=S.pendingGoStop; const P=S.players[pi];
   if(go){
     P.go++; P.lastGoScore=calcScore(P.cap).score;
-    toast(`${P.go}고 !`);
+    announce(`내가 ${P.go}고를 선택했습니다.`, `${P.go}고!`);
     finishTurn(pi);
   }else endGame(pi);
 }
