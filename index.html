@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>맞고 - 화투 한판</title>
+<style>
+  :root{
+    --felt:#1a4a2e; --felt-dark:#0e2e1c; --blanket:#1e5c38;
+    --card-face:#fdfaf2; --card-back:#a51c1c; --card-back2:#7a1010;
+    --gold:#e8bc4a; --ink:#22201a;
+    --hong:#c0392b; --cheong:#2e5fa3; --cho:#3d7a3d;
+    --toast:#111a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+    background:
+      radial-gradient(ellipse at 50% 40%, var(--blanket) 0%, var(--felt) 55%, var(--felt-dark) 100%);
+    color:#f2eee2; height:100dvh; display:flex; flex-direction:column;
+    overflow:hidden; user-select:none;
+  }
+  /* ── 상단바 ── */
+  #topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:6px 12px; font-size:13px; background:rgba(0,0,0,.28);
+  }
+  #topbar .title{font-weight:800; letter-spacing:2px; color:var(--gold); font-size:15px;}
+  #topbar .deckinfo{opacity:.85;}
+  /* ── 영역 레이아웃 ── */
+  #game{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .zone{padding:4px 8px;}
+  #ai-zone,#my-zone{flex:0 0 auto;}
+  #floor-zone{flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0;}
+  .zone-label{font-size:11px; opacity:.7; margin:2px 4px;}
+  /* ── 카드 ── */
+  .card{
+    width:48px; height:80px; border-radius:6px; position:relative; flex-shrink:0;
+    background:var(--card-face); color:var(--ink);
+    background-size:cover; background-position:center;
+    border:1px solid #1a1a1a; box-shadow:0 2px 4px rgba(0,0,0,.45);
+    overflow:hidden; transition:transform .15s, box-shadow .15s;
+  }
+  .card.back{
+    background-image:url('cards/back.png'),
+      repeating-linear-gradient(45deg,var(--card-back) 0 6px,var(--card-back2) 6px 12px);
+    border-color:#5c0c0c;
+  }
+  .card.playable{cursor:pointer;}
+  .card.playable:hover{transform:translateY(-8px); box-shadow:0 8px 14px rgba(0,0,0,.5);}
+  .card.choosable{cursor:pointer; outline:3px solid var(--gold); animation:pulse .7s infinite alternate;}
+  @keyframes pulse{from{transform:translateY(0);}to{transform:translateY(-6px);}}
+  .card.dim{opacity:.45; pointer-events:none;}
+  /* ── 손패/바닥 ── */
+  .hand{display:flex; gap:5px; flex-wrap:wrap; justify-content:center; padding:4px 0;}
+  #floor{
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-content:center;
+    padding:8px; min-height:90px;
+    background:rgba(0,0,0,.18); border-radius:14px; margin:0 6px;
+    border:1px dashed rgba(255,255,255,.15);
+  }
+  .floor-stack{display:flex;}
+  .floor-stack .card:not(:first-child){margin-left:-30px;}
+  .floor-stack.ppeok{filter:drop-shadow(0 0 6px #ff5b5b);}
+  /* ── 획득 영역 ── */
+  .captured{
+    display:flex; gap:10px; font-size:11px; flex-wrap:wrap; align-items:center;
+    background:rgba(0,0,0,.22); border-radius:8px; padding:4px 8px; margin:2px 0; min-height:26px;
+  }
+  .cap-group{display:flex; align-items:center; gap:3px;}
+  .cap-group .mini{
+    width:17px; height:26px; border-radius:3px; background:var(--card-face); color:var(--ink);
+    font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:700;
+    border:1px solid #bbb; margin-left:-7px;
+  }
+  .cap-group .mini:first-of-type{margin-left:0;}
+  .cap-group .mini.g{background:#f7e9b8; border-color:var(--gold);}
+  .cap-group .mini.y{background:#e8d9c8;}
+  .cap-group .mini.t{background:#f3d6d0;}
+  .cap-label{opacity:.75; font-weight:700;}
+  .score-badge{margin-left:auto; font-weight:800; color:var(--gold); font-size:14px;}
+  .go-badge{color:#ff8a5c; font-weight:800;}
+  /* ── 중앙 더미/안내 ── */
+  #center-row{display:flex; align-items:center; justify-content:center; gap:14px; padding:4px;}
+  #deck-pile{position:relative; width:48px; height:80px;}
+  #deck-pile .card{position:absolute;}
+  #deck-count{position:absolute; bottom:-16px; width:100%; text-align:center; font-size:11px; opacity:.8;}
+  #msg{
+    text-align:center; font-size:13px; min-height:20px; padding:2px; color:#ffe9a8; font-weight:600;
+  }
+  /* ── 토스트 ── */
+  #toast{
+    position:fixed; top:42%; left:50%; transform:translate(-50%,-50%) scale(.8);
+    background:rgba(0,0,0,.82); color:var(--gold); font-size:34px; font-weight:900;
+    padding:14px 34px; border-radius:16px; opacity:0; pointer-events:none;
+    transition:all .25s; z-index:50; letter-spacing:4px; border:2px solid var(--gold);
+  }
+  #toast.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+  /* ── 모달 ── */
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    align-items:center; justify-content:center; z-index:100;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#20241f; border:2px solid var(--gold); border-radius:16px;
+    padding:22px 26px; max-width:340px; width:90%; text-align:center;
+    box-shadow:0 10px 40px rgba(0,0,0,.7);
+  }
+  .modal h2{color:var(--gold); margin-bottom:10px; letter-spacing:2px;}
+  .modal .detail{font-size:13px; line-height:1.8; margin:10px 0; text-align:left; opacity:.95;}
+  .modal .detail b{color:var(--gold);}
+  .btn{
+    font-size:16px; font-weight:800; padding:10px 26px; border-radius:10px; border:none;
+    cursor:pointer; margin:6px; font-family:inherit;
+  }
+  .btn.go{background:#c0392b; color:#fff;}
+  .btn.stop{background:#2e5fa3; color:#fff;}
+  .btn.gold{background:var(--gold); color:#221a00;}
+  .btn:active{transform:scale(.96);}
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <span class="title">맞 고</span>
+    <span class="deckinfo"><span id="round-label">3점 나기</span> · 남은 패 <b id="deck-n">20</b>장</span>
+  </div>
+
+  <div id="game">
+    <div class="zone" id="ai-zone">
+      <div class="captured" id="ai-cap"></div>
+      <div class="hand" id="ai-hand"></div>
+    </div>
+
+    <div class="zone" id="floor-zone">
+      <div id="center-row">
+        <div id="deck-pile">
+          <div class="card back" style="top:2px;left:2px;"></div>
+          <div class="card back"></div>
+          <div id="deck-count"></div>
+        </div>
+      </div>
+      <div id="floor"></div>
+      <div id="msg"></div>
+    </div>
+
+    <div class="zone" id="my-zone">
+      <div class="hand" id="my-hand"></div>
+      <div class="captured" id="my-cap"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div class="modal-bg" id="gostop-modal">
+    <div class="modal">
+      <h2 id="gostop-title">고? 스톱?</h2>
+      <div class="detail" id="gostop-detail"></div>
+      <button class="btn go" onclick="humanGoStop(true)">고 !</button>
+      <button class="btn stop" onclick="humanGoStop(false)">스톱</button>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="result-modal">
+    <div class="modal">
+      <h2 id="result-title"></h2>
+      <div class="detail" id="result-detail"></div>
+      <button class="btn gold" onclick="newGame()">한판 더</button>
+    </div>
+  </div>
+
+<script>
+'use strict';
+/* ══════════ 카드 정의 ══════════ */
+// kind: gwang(광) yeol(열끗) tti(띠) pi(피)
+// sub: hong/cheong/cho(단), godori(고도리), ssangpi(쌍피), bi(비광)
+const MONTH_ICON = ['🌲','🌸','🌺','🐦','🪻','🦋','🐗','🌕','🍶','🦌','🍁','🌧️'];
+const MONTH_NAME = ['송학','매조','벚꽃','흑싸리','난초','모란','홍싸리','공산','국화','단풍','오동','비'];
+
+function buildDeck(){
+  const d=[]; let id=0; const seq={};
+  // img: cards/MM-N.png 의 N. 1~11월은 추가 순서 그대로,
+  // 12월만 이미지 3번=번개(쌍피), 4번=버들가지(띠 대용)라 교차
+  const add=(m,kind,sub)=>{
+    seq[m]=(seq[m]||0)+1; let img=seq[m];
+    if(m===12){ if(kind==='tti') img=4; else if(sub==='ssangpi') img=3; }
+    d.push({id:id++, m, kind, sub:sub||null, img});
+  };
+  // [달, 구성]
+  add(1,'gwang'); add(1,'tti','hong'); add(1,'pi'); add(1,'pi');
+  add(2,'yeol','godori'); add(2,'tti','hong'); add(2,'pi'); add(2,'pi');
+  add(3,'gwang'); add(3,'tti','hong'); add(3,'pi'); add(3,'pi');
+  add(4,'yeol','godori'); add(4,'tti','cho'); add(4,'pi'); add(4,'pi');
+  add(5,'yeol'); add(5,'tti','cho'); add(5,'pi'); add(5,'pi');
+  add(6,'yeol'); add(6,'tti','cheong'); add(6,'pi'); add(6,'pi');
+  add(7,'yeol'); add(7,'tti','cho'); add(7,'pi'); add(7,'pi');
+  add(8,'gwang'); add(8,'yeol','godori'); add(8,'pi'); add(8,'pi');
+  add(9,'yeol'); add(9,'tti','cheong'); add(9,'pi'); add(9,'pi');
+  add(10,'yeol'); add(10,'tti','cheong'); add(10,'pi'); add(10,'pi');
+  add(11,'gwang'); add(11,'pi','ssangpi'); add(11,'pi'); add(11,'pi');
+  add(12,'gwang','bi'); add(12,'yeol'); add(12,'tti'); add(12,'pi','ssangpi');
+  return d;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+const KIND_LABEL = c=>{
+  if(c.kind==='gwang') return c.sub==='bi'?'비광':'광';
+  if(c.kind==='yeol') return c.sub==='godori'?'고도리':'열끗';
+  if(c.kind==='tti') return c.sub==='hong'?'홍단':c.sub==='cheong'?'청단':c.sub==='cho'?'초단':'띠';
+  return c.sub==='ssangpi'?'쌍피':'피';
+};
+const cardClass = c=>{
+  if(c.kind==='gwang') return 'gwang';
+  if(c.kind==='yeol') return 'yeol';
+  if(c.kind==='tti') return c.sub||'tti';
+  return c.sub==='ssangpi'?'ssangpi':'pi';
+};
+// AI 판단용 카드 가치
+const cardValue = c=>{
+  if(c.kind==='gwang') return 20;
+  if(c.kind==='yeol') return c.sub==='godori'?13:8;
+  if(c.kind==='tti') return c.sub?10:6;
+  return c.sub==='ssangpi'?5:2;
+};
+
+/* ══════════ 상태 ══════════ */
+const TARGET = 3; // 나는 점수
+let S;
+function newGame(){
+  document.getElementById('result-modal').classList.remove('show');
+  let deck, floor;
+  // 바닥에 같은 달 3장 이상이면 다시 섞기
+  do{
+    deck = shuffle(buildDeck());
+    floor = deck.splice(0,8);
+  }while(hasTriple(floor));
+  S = {
+    deck,
+    floor: floor.map(c=>({...c})),
+    ppeok:new Set(),               // 뻑으로 쌓인 달
+    players:[
+      {hand:deck.splice(0,10), cap:[], go:0, lastGoScore:0, name:'나'},
+      {hand:deck.splice(0,10), cap:[], go:0, lastGoScore:0, name:'상대'},
+    ],
+    turn:0, busy:false, over:false,
+  };
+  setMsg('내 차례! 낼 패를 고르세요.');
+  render();
+}
+function hasTriple(cards){
+  const n={}; for(const c of cards){n[c.m]=(n[c.m]||0)+1; if(n[c.m]>=3) return true;}
+  return false;
+}
+
+/* ══════════ 점수 계산 ══════════ */
+function calcScore(cap){
+  const gwang=cap.filter(c=>c.kind==='gwang');
+  const yeol=cap.filter(c=>c.kind==='yeol');
+  const tti=cap.filter(c=>c.kind==='tti');
+  const piN=cap.reduce((s,c)=>s+(c.kind==='pi'?(c.sub==='ssangpi'?2:1):0),0);
+  let score=0; const lines=[];
+  // 광
+  if(gwang.length>=5){score+=15; lines.push('오광 +15');}
+  else if(gwang.length===4){score+=4; lines.push('사광 +4');}
+  else if(gwang.length===3){
+    const bi=gwang.some(c=>c.sub==='bi');
+    score+=bi?2:3; lines.push(bi?'비삼광 +2':'삼광 +3');
+  }
+  // 열끗
+  if(yeol.length>=5){score+=yeol.length-4; lines.push(`열끗 ${yeol.length}장 +${yeol.length-4}`);}
+  if(yeol.filter(c=>c.sub==='godori').length===3){score+=5; lines.push('고도리 +5');}
+  // 띠
+  if(tti.length>=5){score+=tti.length-4; lines.push(`띠 ${tti.length}장 +${tti.length-4}`);}
+  for(const [sub,nm] of [['hong','홍단'],['cheong','청단'],['cho','초단']]){
+    if(tti.filter(c=>c.sub===sub).length===3){score+=3; lines.push(nm+' +3');}
+  }
+  // 피
+  if(piN>=10){score+=piN-9; lines.push(`피 ${piN}장 +${piN-9}`);}
+  return {score, lines, gwangN:gwang.length, piN};
+}
+function finalScore(winner, loser){
+  const w=calcScore(winner.cap), l=calcScore(loser.cap);
+  let s=w.score+winner.go; const lines=[...w.lines];
+  if(winner.go>0) lines.push(`고 ${winner.go}회 +${winner.go}`);
+  let mul=1;
+  if(winner.go>=3){mul*=Math.pow(2,winner.go-2); lines.push(`${winner.go}고 ×${Math.pow(2,winner.go-2)}`);}
+  if(w.piN>=10 && l.piN>0 && l.piN<=5){mul*=2; lines.push('피박 ×2');}
+  if(w.gwangN>=3 && l.gwangN===0){mul*=2; lines.push('광박 ×2');}
+  return {total:s*mul, lines};
+}
+
+/* ══════════ 렌더링 ══════════ */
+const $=id=>document.getElementById(id);
+function makeCardEl(c, faceUp=true){
+  const el=document.createElement('div');
+  if(!faceUp){el.className='card back'; return el;}
+  el.className='card '+cardClass(c);
+  el.style.backgroundImage=`url('cards/${String(c.m).padStart(2,'0')}-${c.img}.png')`;
+  el.title=`${c.m}월 ${KIND_LABEL(c)}`;
+  return el;
+}
+// 카드 이미지 프리로드 (첫 렌더 깜빡임 방지)
+(function preload(){
+  for(let m=1;m<=12;m++)for(let i=1;i<=4;i++){
+    const im=new Image(); im.src=`cards/${String(m).padStart(2,'0')}-${i}.png`;
+  }
+  const b=new Image(); b.src='cards/back.png';
+})();
+function renderCaptured(el, p){
+  el.innerHTML='';
+  const groups=[['광',c=>c.kind==='gwang','g'],['열끗',c=>c.kind==='yeol','y'],['띠',c=>c.kind==='tti','t'],['피',c=>c.kind==='pi','p']];
+  for(const [label,f,cls] of groups){
+    const cs=p.cap.filter(f);
+    if(!cs.length) continue;
+    const g=document.createElement('div'); g.className='cap-group';
+    g.innerHTML=`<span class="cap-label">${label}</span>`;
+    for(const c of cs){
+      const m=document.createElement('div'); m.className='mini '+cls;
+      m.textContent=c.kind==='pi'&&c.sub==='ssangpi'?'쌍':c.m;
+      g.appendChild(m);
+    }
+    el.appendChild(g);
+  }
+  const sc=calcScore(p.cap);
+  const badge=document.createElement('span'); badge.className='score-badge';
+  badge.innerHTML=`${sc.score}점 ${p.go?`<span class="go-badge">${p.go}고</span>`:''}`;
+  el.appendChild(badge);
+}
+function render(){
+  // 상대
+  const ah=$('ai-hand'); ah.innerHTML='';
+  S.players[1].hand.forEach(()=>ah.appendChild(makeCardEl(null,false)));
+  renderCaptured($('ai-cap'), S.players[1]);
+  // 바닥: 달별 스택
+  const fl=$('floor'); fl.innerHTML='';
+  const byMonth={};
+  for(const c of S.floor){(byMonth[c.m]=byMonth[c.m]||[]).push(c);}
+  for(const m of Object.keys(byMonth).sort((a,b)=>a-b)){
+    const st=document.createElement('div'); st.className='floor-stack';
+    if(S.ppeok.has(+m)) st.classList.add('ppeok');
+    for(const c of byMonth[m]){
+      const el=makeCardEl(c); el.dataset.cid=c.id; st.appendChild(el);
+    }
+    fl.appendChild(st);
+  }
+  // 내 손
+  const mh=$('my-hand'); mh.innerHTML='';
+  for(const c of S.players[0].hand){
+    const el=makeCardEl(c); el.dataset.cid=c.id;
+    if(S.turn===0 && !S.busy && !S.over){
+      el.classList.add('playable');
+      el.onclick=()=>humanPlay(c.id);
+    }else el.classList.add('dim');
+    mh.appendChild(el);
+  }
+  renderCaptured($('my-cap'), S.players[0]);
+  $('deck-n').textContent=S.deck.length;
+}
+function setMsg(t){$('msg').textContent=t;}
+function toast(t){
+  const el=$('toast'); el.textContent=t; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 950);
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ══════════ 턴 진행 ══════════ */
+function matchesOnFloor(m){return S.floor.filter(c=>c.m===m);}
+function removeFromFloor(cards){
+  const ids=new Set(cards.map(c=>c.id));
+  S.floor=S.floor.filter(c=>!ids.has(c.id));
+}
+function stealPi(from, to){
+  // 일반피 우선, 없으면 쌍피
+  let i=from.cap.findIndex(c=>c.kind==='pi'&&c.sub!=='ssangpi');
+  if(i<0) i=from.cap.findIndex(c=>c.kind==='pi');
+  if(i<0) return false;
+  to.cap.push(from.cap.splice(i,1)[0]);
+  return true;
+}
+// 바닥 2장 중 선택 (사람: 클릭 / AI: 가치 높은 쪽)
+function chooseFloorCard(pi, cands){
+  if(pi===1) return Promise.resolve(cands.reduce((a,b)=>cardValue(a)>=cardValue(b)?a:b));
+  return new Promise(res=>{
+    setMsg('가져올 패를 선택하세요!');
+    const els=[...document.querySelectorAll('#floor .card')];
+    const targets=els.filter(el=>cands.some(c=>c.id===+el.dataset.cid));
+    targets.forEach(el=>{
+      el.classList.add('choosable');
+      el.onclick=()=>{
+        targets.forEach(t=>{t.classList.remove('choosable'); t.onclick=null;});
+        res(cands.find(c=>c.id===+el.dataset.cid));
+      };
+    });
+  });
+}
+
+async function playTurn(pi, handIdx){
+  const P=S.players[pi], O=S.players[1-pi];
+  S.busy=true;
+  const played=P.hand.splice(handIdx,1)[0];
+  const captured=[];
+  let stealCount=0;
+
+  const m1=matchesOnFloor(played.m);
+  let pending=null;          // [낸 패, 바닥 짝] — 뒤집기 후 확정
+  let pendingWasPair=false;  // 바닥에 2장 있었는지(따닥 판정)
+  let playedOnFloor=false;
+
+  if(m1.length===0){
+    S.floor.push(played); playedOnFloor=true;
+  }else if(m1.length===3){
+    removeFromFloor(m1); captured.push(played,...m1);
+    if(S.ppeok.has(played.m)){S.ppeok.delete(played.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
+  }else{
+    S.floor.push(played); render(); await sleep(300);
+    const pick = m1.length===2 ? await chooseFloorCard(pi,m1) : m1[0];
+    pendingWasPair = m1.length===2;
+    pending=[played,pick];
+  }
+  render(); await sleep(450);
+
+  /* ── 더미 뒤집기 ── */
+  if(S.deck.length){
+    const flip=S.deck.pop();
+    toast(`${flip.m}월 ${KIND_LABEL(flip)}`);
+    await sleep(600);
+
+    if(pending && flip.m===pending[0].m){
+      if(!pendingWasPair){
+        // 뻑: 3장 바닥에 남김
+        S.floor.push(flip); S.ppeok.add(flip.m);
+        pending=null; toast('뻑 !'); await sleep(500);
+      }else{
+        // 따닥: 4장 싹쓸이 + 피 뺏기
+        const rest=matchesOnFloor(flip.m);
+        removeFromFloor(rest);
+        // pending의 낸패는 floor에 있음 — rest에 포함됨
+        captured.push(...rest, flip);
+        pending=null; stealCount++; toast('따닥 !'); await sleep(500);
+      }
+    }else if(playedOnFloor && flip.m===played.m && matchesOnFloor(flip.m).length===1){
+      // 쪽: 방금 낸 패를 뒤집은 패로 바로 먹기
+      removeFromFloor([played]); captured.push(played, flip);
+      stealCount++; toast('쪽 !'); await sleep(500);
+    }else{
+      const m2=matchesOnFloor(flip.m).filter(c=>!pending||c.id!==pending[1].id);
+      if(m2.length===0){S.floor.push(flip);}
+      else if(m2.length===3){
+        removeFromFloor(m2); captured.push(flip,...m2);
+        if(S.ppeok.has(flip.m)){S.ppeok.delete(flip.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
+      }else{
+        render(); await sleep(200);
+        const pick=m2.length===2?await chooseFloorCard(pi,m2):m2[0];
+        removeFromFloor([pick]); captured.push(flip,pick);
+      }
+      if(pending){
+        removeFromFloor([pending[0],pending[1]]);
+        captured.push(pending[0],pending[1]);
+      }
+    }
+  }else if(pending){
+    removeFromFloor([pending[0],pending[1]]);
+    captured.push(pending[0],pending[1]);
+  }
+
+  // 쓸: 뭔가 먹었고 바닥이 비면
+  if(captured.length && S.floor.length===0 && (P.hand.length||S.deck.length)){
+    stealCount++; toast('쓸 !'); await sleep(500);
+  }
+
+  P.cap.push(...captured);
+  for(let i=0;i<stealCount;i++){
+    if(stealPi(O,P)){setMsg(`${P.name}: 상대 피 1장 획득!`); await sleep(350);}
+  }
+  render();
+
+  /* ── 고/스톱 판단 ── */
+  const sc=calcScore(P.cap).score;
+  if(!S.over && sc>=TARGET && sc>P.lastGoScore){
+    if(pi===0){
+      const d=finalScore(P,O);
+      $('gostop-detail').innerHTML=d.lines.map(l=>'· '+l).join('<br>')+`<br><b>지금 스톱하면 ${d.total}점</b>`;
+      $('gostop-modal').classList.add('show');
+      S.pendingGoStop={pi};
+      return; // 버튼 콜백에서 이어감
+    }else{
+      // AI: 손패 넉넉하고 점수 낮으면 고
+      const goIt = P.hand.length>=4 && P.go<2 && sc<TARGET+3;
+      await sleep(400);
+      if(goIt){P.go++; P.lastGoScore=sc; toast(`상대 ${P.go}고 !`); await sleep(600);}
+      else{endGame(1); return;}
+    }
+  }
+
+  finishTurn(pi);
+}
+
+function finishTurn(pi){
+  S.busy=false;
+  // 나가리 체크
+  if(S.players[0].hand.length===0 && S.players[1].hand.length===0){
+    endGame(-1); return;
+  }
+  S.turn=1-pi;
+  if(S.turn===0){setMsg('내 차례! 낼 패를 고르세요.'); render();}
+  else{setMsg('상대가 생각 중…'); render(); setTimeout(aiMove, 800);}
+}
+
+function humanGoStop(go){
+  $('gostop-modal').classList.remove('show');
+  const {pi}=S.pendingGoStop; const P=S.players[pi];
+  if(go){
+    P.go++; P.lastGoScore=calcScore(P.cap).score;
+    toast(`${P.go}고 !`);
+    finishTurn(pi);
+  }else endGame(pi);
+}
+
+function humanPlay(cid){
+  if(S.turn!==0||S.busy||S.over) return;
+  const idx=S.players[0].hand.findIndex(c=>c.id===cid);
+  if(idx<0) return;
+  playTurn(0, idx);
+}
+
+function aiMove(){
+  if(S.over) return;
+  const P=S.players[1];
+  // 가장 이득 큰 패: 매치되는 바닥패 가치 + 자기 패 가치
+  let best=0, bestGain=-1;
+  P.hand.forEach((c,i)=>{
+    const ms=matchesOnFloor(c.m);
+    let gain;
+    if(ms.length===0) gain = -cardValue(c)*0.3;           // 버리는 손해
+    else if(ms.length===3) gain = cardValue(c)+ms.reduce((s,x)=>s+cardValue(x),0)+6;
+    else gain = cardValue(c)+Math.max(...ms.map(cardValue));
+    if(gain>bestGain){bestGain=gain; best=i;}
+  });
+  playTurn(1, best);
+}
+
+function endGame(winnerPi){
+  S.over=true; S.busy=true;
+  const t=$('result-title'), d=$('result-detail');
+  if(winnerPi===-1){
+    t.textContent='나가리 ~'; d.innerHTML='둘 다 점수를 못 냈습니다.<br>무승부!';
+  }else{
+    const W=S.players[winnerPi], L=S.players[1-winnerPi];
+    const f=finalScore(W,L);
+    t.textContent = winnerPi===0 ? '🎉 승리 !' : '😭 패배…';
+    d.innerHTML = `<b>${W.name} ${f.total}점</b><br>`+f.lines.map(l=>'· '+l).join('<br>');
+  }
+  render();
+  $('result-modal').classList.add('show');
+}
+
+newGame();
+</script>
+</body>
+</html>
