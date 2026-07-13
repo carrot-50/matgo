@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>맞고 - 큰 카드 자동 맞춤</title>
+<title>맞고 - 큰 카드 겹침형</title>
 <style>
   :root{
     --felt:#1a4a2e; --felt-dark:#0e2e1c; --blanket:#1e5c38;
@@ -11,11 +11,12 @@
     --gold:#e8bc4a; --ink:#22201a;
     --hong:#c0392b; --cheong:#2e5fa3; --cho:#3d7a3d;
     --toast:#111a;
-    /* 큰 카드 자동 맞춤: 넓은 화면에서는 크게, 좁은 창에서는 10장이 화면 안에 맞도록 축소 */
-    --card-w:clamp(72px, calc((100vw - 96px) / 10), 92px);
+    /* 카드 크기는 유지하고, 손패만 서로 겹쳐서 화면 안에 배치 */
+    --card-w:clamp(78px, 7.2vw, 96px);
     --card-h:calc(var(--card-w) * 5 / 3);
     --mini-w:clamp(32px, 2.8vw, 42px);
     --mini-h:calc(var(--mini-w) * 5 / 3);
+    --hand-overlap:-14px;
   }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -24,7 +25,7 @@
     background:
       radial-gradient(ellipse at 50% 40%, var(--blanket) 0%, var(--felt) 55%, var(--felt-dark) 100%);
     color:#f2eee2; min-height:100dvh; display:flex; flex-direction:column;
-    overflow:auto; user-select:none;
+    overflow-x:hidden; overflow-y:auto; user-select:none;
   }
   /* ── 상단바 ── */
   #topbar{
@@ -34,8 +35,8 @@
   #topbar .title{font-weight:800; letter-spacing:2px; color:var(--gold); font-size:15px;}
   #topbar .deckinfo{opacity:.85;}
   /* ── 영역 레이아웃 ── */
-  #game{flex:1; display:flex; flex-direction:column; min-height:calc(100dvh - 34px); overflow:visible;}
-  .zone{padding:4px 8px;}
+  #game{flex:1; width:100%; min-width:0; display:flex; flex-direction:column; min-height:calc(100dvh - 34px); overflow:hidden;}
+  .zone{padding:4px 8px; min-width:0;}
   #ai-zone,#my-zone{flex:0 0 auto;}
   #floor-zone{flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0;}
   .zone-label{font-size:11px; opacity:.7; margin:2px 4px;}
@@ -72,21 +73,20 @@
   .card.dim{opacity:.45; pointer-events:none;}
   /* ── 손패/바닥 ── */
   .hand{
-    display:flex; gap:5px; flex-wrap:nowrap; justify-content:safe center;
-    width:100%; max-width:100%; padding:7px 8px 11px; overflow-x:auto; overflow-y:hidden;
-    scrollbar-width:thin; scrollbar-color:rgba(232,188,74,.55) rgba(0,0,0,.18);
+    display:flex; gap:0; flex-wrap:nowrap; justify-content:center; align-items:flex-end;
+    width:100%; max-width:100%; min-width:0; padding:7px 12px 11px;
+    overflow:visible;
   }
-  .hand::-webkit-scrollbar{height:7px;}
-  .hand::-webkit-scrollbar-thumb{background:rgba(232,188,74,.55); border-radius:8px;}
-  .hand::-webkit-scrollbar-track{background:rgba(0,0,0,.18); border-radius:8px;}
-  /* 손패는 창 너비가 부족할 때만 자동 축소되어 양옆 카드가 잘리지 않도록 한다. */
+  /* 큰 카드를 줄이지 않고 서로 살짝 겹쳐 10장을 한 화면에 표시 */
   .hand .card{
-    flex:0 1 var(--card-w);
+    flex:0 0 var(--card-w);
     width:var(--card-w);
-    height:auto;
-    aspect-ratio:3 / 5;
-    min-width:58px;
+    height:var(--card-h);
+    min-width:0;
   }
+  .hand .card:not(:first-child){margin-left:var(--hand-overlap);}
+  .hand .card:hover,
+  .hand .card.choosable{z-index:20;}
   #floor{
     display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-content:center;
     padding:10px; min-height:calc(var(--card-h) + 20px);
@@ -162,27 +162,34 @@
   .btn.stop{background:#2e5fa3; color:#fff;}
   .btn.gold{background:var(--gold); color:#221a00;}
   .btn:active{transform:scale(.96);}
-  @media (max-width:1000px) and (min-width:701px){
-    :root{ --mini-w:30px; }
-    .hand{gap:3px; padding-left:5px; padding-right:5px;}
-    .hand .card{min-width:54px;}
+  @media (max-width:1180px) and (min-width:901px){
+    :root{ --hand-overlap:-30px; --mini-w:32px; }
+    .hand{padding-left:8px; padding-right:8px;}
+  }
+  @media (max-width:900px) and (min-width:701px){
+    :root{ --card-w:82px; --hand-overlap:-34px; --mini-w:30px; }
+    .hand{padding-left:6px; padding-right:6px;}
   }
   @media (max-width:700px){
     :root{
       --card-w:68px;
+      --hand-overlap:-27px;
       --mini-w:30px;
     }
     .zone{padding:3px 4px;}
-    .hand{gap:4px; justify-content:flex-start; padding-left:8px; padding-right:8px;}
-    .hand .card{flex:0 0 var(--card-w); width:var(--card-w); min-width:var(--card-w);}
+    .hand{padding-left:4px; padding-right:4px;}
     #floor{gap:6px; padding:7px;}
     .floor-stack .card:not(:first-child){margin-left:calc(var(--card-w) * -0.42);}
     #center-row{gap:12px;}
     #toast{font-size:25px; padding:11px 22px;}
   }
+  @media (max-width:430px){
+    :root{ --card-w:64px; --hand-overlap:-29px; }
+  }
   @media (max-height:820px) and (min-width:701px){
     :root{
       --card-w:78px;
+      --hand-overlap:-28px;
       --mini-w:32px;
     }
     .zone{padding-top:2px; padding-bottom:2px;}
@@ -193,7 +200,7 @@
 </head>
 <body>
   <div id="topbar">
-    <span class="title">맞 고 · 큰 카드 자동 맞춤</span>
+    <span class="title">맞 고 · 큰 카드 겹침형</span>
     <span class="deckinfo"><span id="round-label">3점 나기</span> · 남은 패 <b id="deck-n">20</b>장</span>
   </div>
 
