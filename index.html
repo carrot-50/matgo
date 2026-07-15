@@ -11,6 +11,7 @@
     --gold:#e8bc4a; --ink:#22201a;
     --hong:#c0392b; --cheong:#2e5fa3; --cho:#3d7a3d;
     --toast:#111a;
+    --cw:68px; --ch:113px;
   }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -36,7 +37,7 @@
   .zone-label{font-size:11px; opacity:.7; margin:2px 4px;}
   /* ── 카드 ── */
   .card{
-    width:48px; height:80px; border-radius:6px; position:relative; flex-shrink:0;
+    width:var(--cw); height:var(--ch); border-radius:6px; position:relative; flex-shrink:0;
     background:var(--card-face); color:var(--ink);
     background-size:cover; background-position:center;
     border:1px solid #1a1a1a; box-shadow:0 2px 4px rgba(0,0,0,.45);
@@ -61,21 +62,21 @@
     border:1px dashed rgba(255,255,255,.15);
   }
   .floor-stack{display:flex;}
-  .floor-stack .card:not(:first-child){margin-left:-30px;}
+  .floor-stack .card:not(:first-child){margin-left:calc(var(--cw) * -0.62);}
   .floor-stack.ppeok{filter:drop-shadow(0 0 6px #ff5b5b);}
   /* ── 획득 영역 ── */
   .captured{
     display:flex; gap:10px; font-size:11px; flex-wrap:wrap; align-items:center;
-    background:rgba(0,0,0,.22); border-radius:8px; padding:4px 8px; margin:2px 0; min-height:26px;
+    background:rgba(0,0,0,.22); border-radius:8px; padding:5px 8px; margin:2px 0; min-height:56px;
   }
-  .cap-group{display:flex; align-items:center; gap:3px;}
+  .cap-group{display:flex; align-items:center; gap:0;}
   .cap-group .mini{
-    width:20px; height:33px; border-radius:3px; background:var(--card-face); color:var(--ink);
-    background-size:cover; background-position:center;
-    font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:700;
-    border:1px solid #bbb; margin-left:-9px;
+    width:32px; height:52px; border-radius:4px; background:var(--card-face); color:var(--ink);
+    background-size:cover; background-position:center; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid #999; margin-left:-8px; box-shadow:0 1px 2px rgba(0,0,0,.4);
   }
-  .cap-group .mini:first-of-type{margin-left:0;}
+  .cap-group .mini:first-of-type{margin-left:4px;}
   .cap-group .mini.g{background:#f7e9b8; border-color:var(--gold);}
   .cap-group .mini.y{background:#e8d9c8;}
   .cap-group .mini.t{background:#f3d6d0;}
@@ -84,7 +85,7 @@
   .go-badge{color:#ff8a5c; font-weight:800;}
   /* ── 중앙 더미/안내 ── */
   #center-row{display:flex; align-items:center; justify-content:center; gap:14px; padding:4px;}
-  #deck-pile{position:relative; width:48px; height:80px;}
+  #deck-pile{position:relative; width:var(--cw); height:var(--ch);}
   #deck-pile .card{position:absolute;}
   #deck-count{position:absolute; bottom:-16px; width:100%; text-align:center; font-size:11px; opacity:.8;}
   #msg{
