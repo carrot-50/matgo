@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>맞고 - 큰 카드 문구 정확화</title>
+<title>맞고 - 화투 한판</title>
 <style>
   :root{
     --felt:#1a4a2e; --felt-dark:#0e2e1c; --blanket:#1e5c38;
@@ -11,12 +11,6 @@
     --gold:#e8bc4a; --ink:#22201a;
     --hong:#c0392b; --cheong:#2e5fa3; --cho:#3d7a3d;
     --toast:#111a;
-    /* 카드 크기는 유지하고, 손패만 서로 겹쳐서 화면 안에 배치 */
-    --card-w:clamp(78px, 7.2vw, 96px);
-    --card-h:calc(var(--card-w) * 5 / 3);
-    --mini-w:clamp(32px, 2.8vw, 42px);
-    --mini-h:calc(var(--mini-w) * 5 / 3);
-    --hand-overlap:-14px;
   }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -24,8 +18,8 @@
     font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
     background:
       radial-gradient(ellipse at 50% 40%, var(--blanket) 0%, var(--felt) 55%, var(--felt-dark) 100%);
-    color:#f2eee2; min-height:100dvh; display:flex; flex-direction:column;
-    overflow-x:hidden; overflow-y:auto; user-select:none;
+    color:#f2eee2; height:100dvh; display:flex; flex-direction:column;
+    overflow:hidden; user-select:none;
   }
   /* ── 상단바 ── */
   #topbar{
@@ -35,66 +29,39 @@
   #topbar .title{font-weight:800; letter-spacing:2px; color:var(--gold); font-size:15px;}
   #topbar .deckinfo{opacity:.85;}
   /* ── 영역 레이아웃 ── */
-  #game{flex:1; width:100%; min-width:0; display:flex; flex-direction:column; min-height:calc(100dvh - 34px); overflow:hidden;}
-  .zone{padding:4px 8px; min-width:0;}
+  #game{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .zone{padding:4px 8px;}
   #ai-zone,#my-zone{flex:0 0 auto;}
   #floor-zone{flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0;}
   .zone-label{font-size:11px; opacity:.7; margin:2px 4px;}
   /* ── 카드 ── */
   .card{
-    width:var(--card-w); height:var(--card-h); border-radius:7px; position:relative; flex-shrink:0;
+    width:48px; height:80px; border-radius:6px; position:relative; flex-shrink:0;
     background:var(--card-face); color:var(--ink);
-    background-size:100% 100%; background-position:center; background-repeat:no-repeat;
-    image-rendering:auto;
-    filter:contrast(1.04) saturate(1.03);
-    border:1px solid #1a1a1a; box-shadow:0 3px 7px rgba(0,0,0,.5);
+    background-size:cover; background-position:center;
+    border:1px solid #1a1a1a; box-shadow:0 2px 4px rgba(0,0,0,.45);
     overflow:hidden; transition:transform .15s, box-shadow .15s;
   }
   .card.back{
-    background-image:url('cards/back.png'),
+    background-image:url('cards/back.webp'),
       repeating-linear-gradient(45deg,var(--card-back) 0 6px,var(--card-back2) 6px 12px);
     border-color:#5c0c0c;
   }
-  .card[data-m]::after{
-    content:attr(data-m); position:absolute; top:1px; left:1px;
-    background:rgba(0,0,0,.72); color:#ffd76a; font-size:11px; font-weight:800;
-    min-width:15px; text-align:center; line-height:1.4; border-radius:0 0 5px 0; padding:0 2px;
-  }
-  .mini[data-m]::after{
-    content:attr(data-m); position:absolute; top:0; left:0;
-    background:rgba(0,0,0,.72); color:#ffd76a; font-size:8px; font-weight:800;
-    min-width:10px; text-align:center; line-height:1.3;
-  }
-  .cap-group .mini{position:relative;}
   .card.playable{cursor:pointer;}
   .card.playable:hover{transform:translateY(-8px); box-shadow:0 8px 14px rgba(0,0,0,.5);}
   .card.choosable{cursor:pointer; outline:3px solid var(--gold); animation:pulse .7s infinite alternate;}
   @keyframes pulse{from{transform:translateY(0);}to{transform:translateY(-6px);}}
   .card.dim{opacity:.45; pointer-events:none;}
   /* ── 손패/바닥 ── */
-  .hand{
-    display:flex; gap:0; flex-wrap:nowrap; justify-content:center; align-items:flex-end;
-    width:100%; max-width:100%; min-width:0; padding:7px 12px 11px;
-    overflow:visible;
-  }
-  /* 큰 카드를 줄이지 않고 서로 살짝 겹쳐 10장을 한 화면에 표시 */
-  .hand .card{
-    flex:0 0 var(--card-w);
-    width:var(--card-w);
-    height:var(--card-h);
-    min-width:0;
-  }
-  .hand .card:not(:first-child){margin-left:var(--hand-overlap);}
-  .hand .card:hover,
-  .hand .card.choosable{z-index:20;}
+  .hand{display:flex; gap:5px; flex-wrap:wrap; justify-content:center; padding:4px 0;}
   #floor{
     display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-content:center;
-    padding:10px; min-height:calc(var(--card-h) + 20px);
+    padding:8px; min-height:90px;
     background:rgba(0,0,0,.18); border-radius:14px; margin:0 6px;
     border:1px dashed rgba(255,255,255,.15);
   }
   .floor-stack{display:flex;}
-  .floor-stack .card:not(:first-child){margin-left:calc(var(--card-w) * -0.46);}
+  .floor-stack .card:not(:first-child){margin-left:-30px;}
   .floor-stack.ppeok{filter:drop-shadow(0 0 6px #ff5b5b);}
   /* ── 획득 영역 ── */
   .captured{
@@ -103,36 +70,24 @@
   }
   .cap-group{display:flex; align-items:center; gap:3px;}
   .cap-group .mini{
-    width:var(--mini-w); height:var(--mini-h); border-radius:3px; background:var(--card-face);
-    background-size:100% 100%; background-position:center; background-repeat:no-repeat;
-    image-rendering:auto; filter:contrast(1.04) saturate(1.03);
-    border:1px solid #1a1a1a; margin-left:calc(var(--mini-w) * -0.38); flex-shrink:0;
-    box-shadow:1px 0 2px rgba(0,0,0,.35);
+    width:17px; height:26px; border-radius:3px; background:var(--card-face); color:var(--ink);
+    font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:700;
+    border:1px solid #bbb; margin-left:-7px;
   }
   .cap-group .mini:first-of-type{margin-left:0;}
+  .cap-group .mini.g{background:#f7e9b8; border-color:var(--gold);}
+  .cap-group .mini.y{background:#e8d9c8;}
+  .cap-group .mini.t{background:#f3d6d0;}
   .cap-label{opacity:.75; font-weight:700;}
   .score-badge{margin-left:auto; font-weight:800; color:var(--gold); font-size:14px;}
   .go-badge{color:#ff8a5c; font-weight:800;}
   /* ── 중앙 더미/안내 ── */
-  #center-row{display:flex; align-items:center; justify-content:center; gap:18px; padding:5px;}
-  #deck-pile{position:relative; width:var(--card-w); height:var(--card-h);}
+  #center-row{display:flex; align-items:center; justify-content:center; gap:14px; padding:4px;}
+  #deck-pile{position:relative; width:48px; height:80px;}
   #deck-pile .card{position:absolute;}
   #deck-count{position:absolute; bottom:-16px; width:100%; text-align:center; font-size:11px; opacity:.8;}
-  #flip-preview{
-    min-width:var(--card-w); min-height:var(--card-h);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  #flip-preview .card{outline:3px solid rgba(232,188,74,.9); box-shadow:0 0 16px rgba(232,188,74,.65);}
-  #flip-label{font-size:12px; font-weight:800; color:#ffe9a8; margin-top:4px; min-height:17px; white-space:nowrap;}
-  #flip-placeholder{
-    width:var(--card-w); height:var(--card-h); border:1px dashed rgba(255,255,255,.25);
-    border-radius:7px; display:flex; align-items:center; justify-content:center;
-    color:rgba(255,255,255,.4); font-size:11px;
-  }
   #msg{
-    text-align:center; font-size:13px; min-height:38px; padding:5px 8px;
-    color:#ffe9a8; font-weight:700; line-height:1.35;
-    display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:13px; min-height:20px; padding:2px; color:#ffe9a8; font-weight:600;
   }
   /* ── 토스트 ── */
   #toast{
@@ -164,45 +119,11 @@
   .btn.stop{background:#2e5fa3; color:#fff;}
   .btn.gold{background:var(--gold); color:#221a00;}
   .btn:active{transform:scale(.96);}
-  @media (max-width:1180px) and (min-width:901px){
-    :root{ --hand-overlap:-30px; --mini-w:32px; }
-    .hand{padding-left:8px; padding-right:8px;}
-  }
-  @media (max-width:900px) and (min-width:701px){
-    :root{ --card-w:82px; --hand-overlap:-34px; --mini-w:30px; }
-    .hand{padding-left:6px; padding-right:6px;}
-  }
-  @media (max-width:700px){
-    :root{
-      --card-w:68px;
-      --hand-overlap:-27px;
-      --mini-w:30px;
-    }
-    .zone{padding:3px 4px;}
-    .hand{padding-left:4px; padding-right:4px;}
-    #floor{gap:6px; padding:7px;}
-    .floor-stack .card:not(:first-child){margin-left:calc(var(--card-w) * -0.42);}
-    #center-row{gap:12px;}
-    #toast{font-size:25px; padding:11px 22px;}
-  }
-  @media (max-width:430px){
-    :root{ --card-w:64px; --hand-overlap:-29px; }
-  }
-  @media (max-height:820px) and (min-width:701px){
-    :root{
-      --card-w:78px;
-      --hand-overlap:-28px;
-      --mini-w:32px;
-    }
-    .zone{padding-top:2px; padding-bottom:2px;}
-    .hand{padding-top:4px; padding-bottom:7px;}
-    #floor{padding:7px; min-height:calc(var(--card-h) + 14px);}
-  }
 </style>
 </head>
 <body>
   <div id="topbar">
-    <span class="title">맞 고 · 문구 정확화</span>
+    <span class="title">맞 고</span>
     <span class="deckinfo"><span id="round-label">3점 나기</span> · 남은 패 <b id="deck-n">20</b>장</span>
   </div>
 
@@ -218,10 +139,6 @@
           <div class="card back" style="top:2px;left:2px;"></div>
           <div class="card back"></div>
           <div id="deck-count"></div>
-        </div>
-        <div id="flip-preview">
-          <div id="flip-placeholder">뒤집은 패</div>
-          <div id="flip-label"></div>
         </div>
       </div>
       <div id="floor"></div>
@@ -261,36 +178,38 @@
 const MONTH_ICON = ['🌲','🌸','🌺','🐦','🪻','🦋','🐗','🌕','🍶','🦌','🍁','🌧️'];
 const MONTH_NAME = ['송학','매조','벚꽃','흑싸리','난초','모란','홍싸리','공산','국화','단풍','오동','비'];
 
-// [월, 이미지 번호, 종류, 세부 종류]
-// 파일 번호와 카드 의미를 명시적으로 묶어 두어 이미지와 안내 문구가 어긋나지 않게 한다.
-const CARD_DEFS = [
-  [1,1,'gwang'], [1,2,'tti','hong'], [1,3,'pi'], [1,4,'pi'],
-  [2,1,'yeol','godori'], [2,2,'tti','hong'], [2,3,'pi'], [2,4,'pi'],
-  [3,1,'gwang'], [3,2,'tti','hong'], [3,3,'pi'], [3,4,'pi'],
-  [4,1,'yeol','godori'], [4,2,'tti','cho'], [4,3,'pi'], [4,4,'pi'],
-  [5,1,'yeol'], [5,2,'tti','cho'], [5,3,'pi'], [5,4,'pi'],
-  [6,1,'yeol'], [6,2,'tti','cheong'], [6,3,'pi'], [6,4,'pi'],
-  [7,1,'yeol'], [7,2,'tti','cho'], [7,3,'pi'], [7,4,'pi'],
-  [8,1,'gwang'], [8,2,'yeol','godori'], [8,3,'pi'], [8,4,'pi'],
-  [9,1,'yeol'], [9,2,'tti','cheong'], [9,3,'pi'], [9,4,'pi'],
-  [10,1,'yeol'], [10,2,'tti','cheong'], [10,3,'pi'], [10,4,'pi'],
-  [11,1,'gwang'], [11,2,'pi','ssangpi'], [11,3,'pi'], [11,4,'pi'],
-  [12,1,'gwang','bi'], [12,2,'yeol'], [12,4,'tti'], [12,3,'pi','ssangpi'],
-];
-
 function buildDeck(){
-  return CARD_DEFS.map(([m,img,kind,sub],id)=>({id,m,img,kind,sub:sub||null}));
+  const d=[]; let id=0; const seq={};
+  // img: cards/MM-N.png 의 N. 1~11월은 추가 순서 그대로,
+  // 12월만 이미지 3번=번개(쌍피), 4번=버들가지(띠 대용)라 교차
+  const add=(m,kind,sub)=>{
+    seq[m]=(seq[m]||0)+1; let img=seq[m];
+    if(m===12){ if(kind==='tti') img=4; else if(sub==='ssangpi') img=3; }
+    d.push({id:id++, m, kind, sub:sub||null, img});
+  };
+  // [달, 구성]
+  add(1,'gwang'); add(1,'tti','hong'); add(1,'pi'); add(1,'pi');
+  add(2,'yeol','godori'); add(2,'tti','hong'); add(2,'pi'); add(2,'pi');
+  add(3,'gwang'); add(3,'tti','hong'); add(3,'pi'); add(3,'pi');
+  add(4,'yeol','godori'); add(4,'tti','cho'); add(4,'pi'); add(4,'pi');
+  add(5,'yeol'); add(5,'tti','cho'); add(5,'pi'); add(5,'pi');
+  add(6,'yeol'); add(6,'tti','cheong'); add(6,'pi'); add(6,'pi');
+  add(7,'yeol'); add(7,'tti','cho'); add(7,'pi'); add(7,'pi');
+  add(8,'gwang'); add(8,'yeol','godori'); add(8,'pi'); add(8,'pi');
+  add(9,'yeol'); add(9,'tti','cheong'); add(9,'pi'); add(9,'pi');
+  add(10,'yeol'); add(10,'tti','cheong'); add(10,'pi'); add(10,'pi');
+  add(11,'gwang'); add(11,'pi','ssangpi'); add(11,'pi'); add(11,'pi');
+  add(12,'gwang','bi'); add(12,'yeol'); add(12,'tti'); add(12,'pi','ssangpi');
+  return d;
 }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 const KIND_LABEL = c=>{
   if(c.kind==='gwang') return c.sub==='bi'?'비광':'광';
-  // 고도리는 새 3장을 모았을 때의 족보이므로, 개별 카드는 열끗으로 안내한다.
-  if(c.kind==='yeol') return c.sub==='godori'?'열끗(고도리 패)':'열끗';
+  if(c.kind==='yeol') return c.sub==='godori'?'고도리':'열끗';
   if(c.kind==='tti') return c.sub==='hong'?'홍단':c.sub==='cheong'?'청단':c.sub==='cho'?'초단':'띠';
   return c.sub==='ssangpi'?'쌍피':'피';
 };
-const CARD_NAME = c=>`${c.m}월 ${MONTH_NAME[c.m-1]} · ${KIND_LABEL(c)}`;
 const cardClass = c=>{
   if(c.kind==='gwang') return 'gwang';
   if(c.kind==='yeol') return 'yeol';
@@ -310,7 +229,6 @@ const TARGET = 3; // 나는 점수
 let S;
 function newGame(){
   document.getElementById('result-modal').classList.remove('show');
-  clearFlipCard();
   let deck, floor;
   // 바닥에 같은 달 3장 이상이면 다시 섞기
   do{
@@ -327,7 +245,7 @@ function newGame(){
     ],
     turn:0, busy:false, over:false,
   };
-  setMsg('내 차례입니다. 아래 손패에서 낼 패를 고르세요.');
+  setMsg('내 차례! 낼 패를 고르세요.');
   render();
 }
 function hasTriple(cards){
@@ -378,34 +296,16 @@ function makeCardEl(c, faceUp=true){
   const el=document.createElement('div');
   if(!faceUp){el.className='card back'; return el;}
   el.className='card '+cardClass(c);
-  el.style.backgroundImage=`url('cards/${String(c.m).padStart(2,'0')}-${c.img}.png')`;
-  el.dataset.m=c.m;
-  el.title=CARD_NAME(c);
+  el.style.backgroundImage=`url('cards/${String(c.m).padStart(2,'0')}-${c.img}.webp')`;
+  el.title=`${c.m}월 ${KIND_LABEL(c)}`;
   return el;
-}
-
-function showFlipCard(c){
-  const box=$('flip-preview');
-  box.innerHTML='';
-  const card=makeCardEl(c);
-  card.setAttribute('aria-label', CARD_NAME(c));
-  box.appendChild(card);
-  const label=document.createElement('div');
-  label.id='flip-label';
-  label.textContent=CARD_NAME(c);
-  box.appendChild(label);
-}
-function clearFlipCard(){
-  const box=$('flip-preview');
-  if(!box) return;
-  box.innerHTML='<div id="flip-placeholder">뒤집은 패</div><div id="flip-label"></div>';
 }
 // 카드 이미지 프리로드 (첫 렌더 깜빡임 방지)
 (function preload(){
   for(let m=1;m<=12;m++)for(let i=1;i<=4;i++){
-    const im=new Image(); im.src=`cards/${String(m).padStart(2,'0')}-${i}.png`;
+    const im=new Image(); im.src=`cards/${String(m).padStart(2,'0')}-${i}.webp`;
   }
-  const b=new Image(); b.src='cards/back.png';
+  const b=new Image(); b.src='cards/back.webp';
 })();
 function renderCaptured(el, p){
   el.innerHTML='';
@@ -417,9 +317,7 @@ function renderCaptured(el, p){
     g.innerHTML=`<span class="cap-label">${label}</span>`;
     for(const c of cs){
       const m=document.createElement('div'); m.className='mini '+cls;
-      m.style.backgroundImage=`url('cards/${String(c.m).padStart(2,'0')}-${c.img}.png')`;
-      m.dataset.m=c.m;
-      m.title=CARD_NAME(c);
+      m.textContent=c.kind==='pi'&&c.sub==='ssangpi'?'쌍':c.m;
       g.appendChild(m);
     }
     el.appendChild(g);
@@ -460,20 +358,9 @@ function render(){
   $('deck-n').textContent=S.deck.length;
 }
 function setMsg(t){$('msg').textContent=t;}
-let toastTimer=null;
-function toast(t, duration=1100){
-  const el=$('toast');
-  if(toastTimer) clearTimeout(toastTimer);
-  el.textContent=t;
-  el.classList.add('show');
-  toastTimer=setTimeout(()=>{
-    el.classList.remove('show');
-    toastTimer=null;
-  }, duration);
-}
-function announce(t, popupText=null, duration=1100){
-  setMsg(t);
-  if(popupText) toast(popupText, duration);
+function toast(t){
+  const el=$('toast'); el.textContent=t; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 950);
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
@@ -495,7 +382,7 @@ function stealPi(from, to){
 function chooseFloorCard(pi, cands){
   if(pi===1) return Promise.resolve(cands.reduce((a,b)=>cardValue(a)>=cardValue(b)?a:b));
   return new Promise(res=>{
-    setMsg('같은 월 패가 2장입니다. 가져올 패를 선택하세요.');
+    setMsg('가져올 패를 선택하세요!');
     const els=[...document.querySelectorAll('#floor .card')];
     const targets=els.filter(el=>cands.some(c=>c.id===+el.dataset.cid));
     targets.forEach(el=>{
@@ -511,12 +398,9 @@ function chooseFloorCard(pi, cands){
 async function playTurn(pi, handIdx){
   const P=S.players[pi], O=S.players[1-pi];
   S.busy=true;
-  clearFlipCard();
   const played=P.hand.splice(handIdx,1)[0];
-  const actor = pi===0 ? '나' : '상대';
   const captured=[];
   let stealCount=0;
-  announce(`${actor}가 낸 패: ${CARD_NAME(played)}`);
 
   const m1=matchesOnFloor(played.m);
   let pending=null;          // [낸 패, 바닥 짝] — 뒤집기 후 확정
@@ -527,7 +411,7 @@ async function playTurn(pi, handIdx){
     S.floor.push(played); playedOnFloor=true;
   }else if(m1.length===3){
     removeFromFloor(m1); captured.push(played,...m1);
-    if(S.ppeok.has(played.m)){S.ppeok.delete(played.m); stealCount++; announce(`${actor}: ${played.m}월 뻑 패를 가져왔습니다.`, '뻑 먹기!'); await sleep(650);}
+    if(S.ppeok.has(played.m)){S.ppeok.delete(played.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
   }else{
     S.floor.push(played); render(); await sleep(300);
     const pick = m1.length===2 ? await chooseFloorCard(pi,m1) : m1[0];
@@ -539,33 +423,32 @@ async function playTurn(pi, handIdx){
   /* ── 더미 뒤집기 ── */
   if(S.deck.length){
     const flip=S.deck.pop();
-    showFlipCard(flip);
-    announce(`${actor}의 뒤집은 패: ${CARD_NAME(flip)}`);
-    await sleep(1000);
+    toast(`${flip.m}월 ${KIND_LABEL(flip)}`);
+    await sleep(600);
 
     if(pending && flip.m===pending[0].m){
       if(!pendingWasPair){
         // 뻑: 3장 바닥에 남김
         S.floor.push(flip); S.ppeok.add(flip.m);
-        pending=null; announce(`뻑! ${flip.m}월 패 3장이 바닥에 쌓였습니다.`, '뻑!'); await sleep(650);
+        pending=null; toast('뻑 !'); await sleep(500);
       }else{
         // 따닥: 4장 싹쓸이 + 피 뺏기
         const rest=matchesOnFloor(flip.m);
         removeFromFloor(rest);
         // pending의 낸패는 floor에 있음 — rest에 포함됨
         captured.push(...rest, flip);
-        pending=null; stealCount++; announce(`따닥! ${flip.m}월 패 4장을 모두 가져왔습니다.`, '따닥!'); await sleep(650);
+        pending=null; stealCount++; toast('따닥 !'); await sleep(500);
       }
     }else if(playedOnFloor && flip.m===played.m && matchesOnFloor(flip.m).length===1){
       // 쪽: 방금 낸 패를 뒤집은 패로 바로 먹기
       removeFromFloor([played]); captured.push(played, flip);
-      stealCount++; announce(`쪽! 방금 낸 ${played.m}월 패와 뒤집은 패를 가져왔습니다.`, '쪽!'); await sleep(650);
+      stealCount++; toast('쪽 !'); await sleep(500);
     }else{
       const m2=matchesOnFloor(flip.m).filter(c=>!pending||c.id!==pending[1].id);
       if(m2.length===0){S.floor.push(flip);}
       else if(m2.length===3){
         removeFromFloor(m2); captured.push(flip,...m2);
-        if(S.ppeok.has(flip.m)){S.ppeok.delete(flip.m); stealCount++; announce(`${actor}: ${flip.m}월 뻑 패를 가져왔습니다.`, '뻑 먹기!'); await sleep(650);}
+        if(S.ppeok.has(flip.m)){S.ppeok.delete(flip.m); stealCount++; toast('뻑 먹기!'); await sleep(500);}
       }else{
         render(); await sleep(200);
         const pick=m2.length===2?await chooseFloorCard(pi,m2):m2[0];
@@ -583,12 +466,12 @@ async function playTurn(pi, handIdx){
 
   // 쓸: 뭔가 먹었고 바닥이 비면
   if(captured.length && S.floor.length===0 && (P.hand.length||S.deck.length)){
-    stealCount++; announce(`${actor}: 바닥패를 모두 가져갔습니다.`, '쓸!'); await sleep(650);
+    stealCount++; toast('쓸 !'); await sleep(500);
   }
 
   P.cap.push(...captured);
   for(let i=0;i<stealCount;i++){
-    if(stealPi(O,P)){announce(`${actor}: 상대 피 1장을 가져왔습니다.`, '피 1장 획득'); await sleep(550);}
+    if(stealPi(O,P)){setMsg(`${P.name}: 상대 피 1장 획득!`); await sleep(350);}
   }
   render();
 
@@ -605,7 +488,7 @@ async function playTurn(pi, handIdx){
       // AI: 손패 넉넉하고 점수 낮으면 고
       const goIt = P.hand.length>=4 && P.go<2 && sc<TARGET+3;
       await sleep(400);
-      if(goIt){P.go++; P.lastGoScore=sc; announce(`상대가 ${P.go}고를 선택했습니다.`, `${P.go}고!`); await sleep(700);}
+      if(goIt){P.go++; P.lastGoScore=sc; toast(`상대 ${P.go}고 !`); await sleep(600);}
       else{endGame(1); return;}
     }
   }
@@ -620,14 +503,8 @@ function finishTurn(pi){
     endGame(-1); return;
   }
   S.turn=1-pi;
-  if(S.turn===0){
-    setMsg('내 차례입니다. 아래 손패에서 낼 패를 고르세요.');
-    render();
-  }else{
-    setMsg('상대 차례입니다. 잠시 기다려 주세요.');
-    render();
-    setTimeout(aiMove, 800);
-  }
+  if(S.turn===0){setMsg('내 차례! 낼 패를 고르세요.'); render();}
+  else{setMsg('상대가 생각 중…'); render(); setTimeout(aiMove, 800);}
 }
 
 function humanGoStop(go){
@@ -635,7 +512,7 @@ function humanGoStop(go){
   const {pi}=S.pendingGoStop; const P=S.players[pi];
   if(go){
     P.go++; P.lastGoScore=calcScore(P.cap).score;
-    announce(`내가 ${P.go}고를 선택했습니다.`, `${P.go}고!`);
+    toast(`${P.go}고 !`);
     finishTurn(pi);
   }else endGame(pi);
 }
