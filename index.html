@@ -70,9 +70,10 @@
   }
   .cap-group{display:flex; align-items:center; gap:3px;}
   .cap-group .mini{
-    width:17px; height:26px; border-radius:3px; background:var(--card-face); color:var(--ink);
+    width:20px; height:33px; border-radius:3px; background:var(--card-face); color:var(--ink);
+    background-size:cover; background-position:center;
     font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:700;
-    border:1px solid #bbb; margin-left:-7px;
+    border:1px solid #bbb; margin-left:-9px;
   }
   .cap-group .mini:first-of-type{margin-left:0;}
   .cap-group .mini.g{background:#f7e9b8; border-color:var(--gold);}
@@ -317,7 +318,8 @@ function renderCaptured(el, p){
     g.innerHTML=`<span class="cap-label">${label}</span>`;
     for(const c of cs){
       const m=document.createElement('div'); m.className='mini '+cls;
-      m.textContent=c.kind==='pi'&&c.sub==='ssangpi'?'쌍':c.m;
+      m.style.backgroundImage=`url('cards/${String(c.m).padStart(2,'0')}-${c.img}.webp')`;
+      m.title=`${c.m}월 ${KIND_LABEL(c)}`;
       g.appendChild(m);
     }
     el.appendChild(g);
